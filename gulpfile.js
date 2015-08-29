@@ -214,7 +214,7 @@ gulp.task('serve', ['styles', 'elements', 'images'], function () {
     // https: true,
     server: {
       baseDir: ['.tmp', APP],
-      middleware: [ historyApiFallback() ],
+      middleware: [ historyApiFallback(), require('proxy-middleware')(proxyOptions) ],
       routes: {
         '/bower_components': 'bower_components'
       }

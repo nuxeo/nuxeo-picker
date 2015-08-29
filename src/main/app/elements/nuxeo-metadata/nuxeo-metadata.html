@@ -103,13 +103,13 @@
         },
 
         _icon: function(doc) {
-          if (doc && doc.properties['common:icon']) {
+          if (doc && doc.properties && doc.properties['common:icon']) {
             return this.$.nx.client._baseURL + doc.properties['common:icon'];
           }
         },
 
         _thumbnail: function(doc) {
-          if (doc && doc.properties['thumb:thumbnail']) {
+          if (doc && doc.properties && doc.properties['thumb:thumbnail']) {
             return doc.properties['thumb:thumbnail'].data;
           }
         },

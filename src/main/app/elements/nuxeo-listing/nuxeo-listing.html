@@ -12,6 +12,8 @@
       display: inline-block;
       width: 300px;
       overflow: hidden;
+      cursor: pointer;
+      user-select: none;
       @apply(--shadow-elevation-2dp);
     }
 
@@ -45,6 +47,10 @@
       pointer-events: none;
     }
 
+    .hover {
+      background: var(--light-primary-color);
+    }
+
     @media (max-width: 600px) {
       h1.paper-font-display1 {
         font-size: 24px;
@@ -63,7 +69,7 @@
       </template>
     </div>
 
-    <div class="list">
+    <div id="list" class="list">
       <template is="dom-repeat" items="[[response.entries]]">
         <paper-item class="item" on-tap="_select" selected$="[[_isSame(item, selected)]]">
           <img src="[[_iconFor(item)]]"></img> <span>[[item.title]]</span>
@@ -101,6 +107,13 @@
           '_fetchParent(path)',
           '_fetch(currentParent.uid, searchTerm)'
         ],
+
+        listeners: {
+          'list.dragover': '_onDragOver',
+          'list.dragenter': '_onDragEnter',
+          'list.drop': '_onDrop',
+          'list.dragleave': '_onDragLeave'
+        },
 
         _fetchParent: function(path) {
           this.$.parentResource.path = '/path' + path;
@@ -163,6 +176,55 @@
 
         _splitPath: function(path) {
           return (path) ? path.split('/').splice(1) : [];
+        },
+
+        _onDragOver: function(e) {
+          // prevent default to allow drop
+          e.preventDefault();
+        },
+
+        _onDragEnter: function(e) {
+          this.toggleClass('hover', true, e.target);
+        },
+
+        _onDrop: function (e) {
+          e.preventDefault();
+          this.toggleClass('hover', false, e.target);
+          this._upload(e.dataTransfer.files).then(function(docs) {
+            // refresh and select last file uploaded
+            return this.$.query.get().then(function() {
+              this.selected = docs.entries.pop();
+            }.bind(this));
+          }.bind(this));
+          return false;
+        },
+
+        _onDragLeave: function(e) {
+          this.toggleClass('hover', false, e.target);
+        },
+
+        _upload: function(files) {
+          var uploader = this.$.nx.client
+            .operation('FileManager.Import')
+            .context({ currentDocument: this.currentParent.path })
+            .uploader();
+
+          var uploads = [];
+          for (var i = 0; i < files.length; i++) {
+            uploads.push(new Promise(function (resolve, reject) {
+              uploader.uploadFile(files[i], function (error, data) {
+                (error) ? reject(error) : resolve(data);
+              });
+            }));
+          }
+          return Promise.all(uploads)
+            .then(function() {
+              return new Promise(function (resolve, reject) {
+                uploader.execute(function (error, data) {
+                  (error) ? reject(error) : resolve(data);
+                });
+              });
+            });
         }
       });
     })();
